@@ -1,0 +1,123 @@
+#!/bin/bash
+
+repertoiretmp='/opt/checktime/tmp/'
+repertoirelog='/opt/checktime/log/'
+
+if [ ! -e "$repertoiretmp$1.statut" ]
+then
+	echo "nonconnected" > "$repertoiretmp$1.statut"
+fi
+laststatut=$(< "$repertoiretmp$1.statut")
+maintenant=$(date +"%Y-%m-%d %a %T")
+
+case $1 in
+"")
+echo "Usage: $0 username"
+;;
+*)
+echo "Log time for $1"
+if who -u | grep "^$1 " | grep -q tty
+then
+	#Connecté
+	if [ ! -e "$repertoiretmp$1-start.date" ]
+	then
+		echo $(date +"%Y-%m-%d %a %T") > "$repertoiretmp$1-start.date"
+		echo $(date +"%Y-%m-%d %a %T" -d 'now + 2 minute') > "$repertoiretmp$1-next.date"
+	fi
+
+	contenufichierstart=$(< "$repertoiretmp$1-start.date")
+	contenufichiernext=$(< "$repertoiretmp$1-next.date")
+
+#	echo "$1 session start at $contenufichierstart"
+#	echo "current time is $maintenant"
+#	echo "timeout : $contenufichiernext"
+
+
+	if ps -ef | grep "^$1 " | grep -q kscreenlocker
+	then
+##################################################
+# locked
+##################################################
+	        case $laststatut in
+		"connected" )
+                	echo "$1 was connected"
+                	# mise en log
+                	echo $(< "$repertoiretmp$1-tmplog.date") >> "$repertoirelog$1.log"
+                	# creation des fichiers temporaires
+#               	echo $(date +"%Y-%m-%d %a %T") > "$repertoiretmp$1-start.date"
+#               	echo $(date +"%Y-%m-%d %a %T" -d 'now + 2 minute') > "$repertoiretmp$1-next.date"
+#               	echo "From $contenufichierstart to $maintenant" > "$repertoiretmp$1-tmplog.date"
+        	;;
+        	"locked" )
+                	echo "$1 was locked"
+        	;;
+        	"notconnected")
+                	echo "$1 was not connected"
+        	;;
+        	*)
+                	echo "ERR - valeur fichier statut"
+        	;;
+        	esac
+		echo "$1 is locked"
+        	echo "locked" > "$repertoiretmp$1.statut"
+	else
+################################################
+# CONNECTED
+################################################
+		case $laststatut in
+		"connected")
+			if [[ "$contenufichiernext" > "$maintenant" ]]
+			then
+				# Check dans les temps - session en cours
+				echo "$1 session en cours"
+			else
+				# check hors timing l ordinateur c est arrete
+			 	echo "$1 nouvelle session"
+				# mise en log
+	       	 		echo $(< "$repertoiretmp$1-tmplog.date") >> "$repertoirelog$1.log"
+				# nouvelle session
+	        		echo $(date +"%Y-%m-%d %a %T") > "$repertoiretmp$1-start.date"
+    			fi
+		;;
+		"locked")
+			echo $(date +"%Y-%m-%d %a %T") > "$repertoiretmp$1-start.date"
+		;;
+		"notconnected")
+			echo $(date +"%Y-%m-%d %a %T") > "$repertoiretmp$1-start.date"
+		;;
+		esac
+                # update pour prochain check
+                echo $(date +"%Y-%m-%d %a %T" -d 'now + 2 minute') > "$repertoiretmp$1-next.date"
+                echo "From $contenufichierstart to $maintenant" > "$repertoiretmp$1-tmplog.date"
+		echo "connected" > "$repertoiretmp$1.statut"
+	fi
+else
+##################################################
+# NOT CONNECTED
+##################################################
+	case $laststatut in
+	"connected" )
+		echo "$1 was connected"
+		# mise en log
+		echo $(< "$repertoiretmp$1-tmplog.date") >> "$repertoirelog$1.log"
+		# creation des fichiers temporaires
+#		echo $(date +"%Y-%m-%d %a %T") > "$repertoiretmp$1-start.date"
+#		echo $(date +"%Y-%m-%d %a %T" -d 'now + 2 minute') > "$repertoiretmp$1-next.date"
+#		echo "From $contenufichierstart to $maintenant" > "$repertoiretmp$1-tmplog.date"
+	;;
+        "locked" )
+		echo "$1 was locked"
+	;;
+	"notconnected")
+		echo "$1 was not connected"
+	;;
+	*)
+		echo "ERR - valeur fichier statut"
+	;;
+	esac
+	echo "$1 is not connected"
+	echo "notconnected" > "$repertoiretmp$1.statut"
+fi
+
+;;
+esac
