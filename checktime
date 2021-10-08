@@ -9,6 +9,7 @@ then
 fi
 laststatut=$(< "$repertoiretmp$1.statut")
 maintenant=$(date +"%Y-%m-%d %a %T")
+maintenantseconde=$(date +"%s")
 
 case $1 in
 "")
@@ -21,17 +22,14 @@ then
 	#Connecté
 	if [ ! -e "$repertoiretmp$1-start.date" ]
 	then
+		echo $(date +"%s") > "$repertoiretmp$1-start.seconde"
 		echo $(date +"%Y-%m-%d %a %T") > "$repertoiretmp$1-start.date"
 		echo $(date +"%Y-%m-%d %a %T" -d 'now + 2 minute') > "$repertoiretmp$1-next.date"
 	fi
 
 	contenufichierstart=$(< "$repertoiretmp$1-start.date")
 	contenufichiernext=$(< "$repertoiretmp$1-next.date")
-
-#	echo "$1 session start at $contenufichierstart"
-#	echo "current time is $maintenant"
-#	echo "timeout : $contenufichiernext"
-
+	contenufichierstartseconde=$(< "$repertoiretmp$1-start.seconde")
 
 	if ps -ef | grep "^$1 " | grep -q kscreenlocker
 	then
@@ -43,10 +41,7 @@ then
                 	echo "$1 was connected"
                 	# mise en log
                 	echo $(< "$repertoiretmp$1-tmplog.date") >> "$repertoirelog$1.log"
-                	# creation des fichiers temporaires
-#               	echo $(date +"%Y-%m-%d %a %T") > "$repertoiretmp$1-start.date"
-#               	echo $(date +"%Y-%m-%d %a %T" -d 'now + 2 minute') > "$repertoiretmp$1-next.date"
-#               	echo "From $contenufichierstart to $maintenant" > "$repertoiretmp$1-tmplog.date"
+			#echo -e "\r\n" >> "$repertoirelog$1.log"
         	;;
         	"locked" )
                 	echo "$1 was locked"
@@ -66,6 +61,7 @@ then
 ################################################
 		case $laststatut in
 		"connected")
+			echo "$1 was connected"
 			if [[ "$contenufichiernext" > "$maintenant" ]]
 			then
 				# Check dans les temps - session en cours
@@ -74,21 +70,32 @@ then
 				# check hors timing l ordinateur c est arrete
 			 	echo "$1 nouvelle session"
 				# mise en log
-	       	 		echo $(< "$repertoiretmp$1-tmplog.date") >> "$repertoirelog$1.log"
+				echo $(< "$repertoiretmp$1-tmplog.date") >> "$repertoirelog$1.log"
+				#echo -e "\r\n" >> "$repertoirelog$1.log"
 				# nouvelle session
 	        		echo $(date +"%Y-%m-%d %a %T") > "$repertoiretmp$1-start.date"
+				echo $(date +"%s") > "$repertoiretmp$1-start.seconde"
     			fi
 		;;
 		"locked")
+			echo "$1 was locked"
 			echo $(date +"%Y-%m-%d %a %T") > "$repertoiretmp$1-start.date"
+			echo $(date +"%s") > "$repertoiretmp$1-start.seconde"
 		;;
 		"notconnected")
+			echo "$1 was not connected"
 			echo $(date +"%Y-%m-%d %a %T") > "$repertoiretmp$1-start.date"
+			echo $(date +"%s") > "$repertoiretmp$1-start.seconde"
 		;;
 		esac
+		echo "$1 is connected"
                 # update pour prochain check
                 echo $(date +"%Y-%m-%d %a %T" -d 'now + 2 minute') > "$repertoiretmp$1-next.date"
-                echo "From $contenufichierstart to $maintenant" > "$repertoiretmp$1-tmplog.date"
+		#echo "xxx $maintenantseconde"
+		#echo "xxx $contenufichierstartseconde"
+		let deltasec=maintenantseconde-contenufichierstartseconde deltaheure=deltasec/3600 deltamin=deltasec/60-deltaheure*60
+		echo "$deltasec sec soit $deltamin min $deltaheure h"
+                echo -e "From $contenufichierstart to $maintenant : $deltaheure h $deltamin min <br>" > "$repertoiretmp$1-tmplog.date"
 		echo "connected" > "$repertoiretmp$1.statut"
 	fi
 else
@@ -100,10 +107,7 @@ else
 		echo "$1 was connected"
 		# mise en log
 		echo $(< "$repertoiretmp$1-tmplog.date") >> "$repertoirelog$1.log"
-		# creation des fichiers temporaires
-#		echo $(date +"%Y-%m-%d %a %T") > "$repertoiretmp$1-start.date"
-#		echo $(date +"%Y-%m-%d %a %T" -d 'now + 2 minute') > "$repertoiretmp$1-next.date"
-#		echo "From $contenufichierstart to $maintenant" > "$repertoiretmp$1-tmplog.date"
+		#echo -e "\r\n" >> "$repertoirelog$1.log"
 	;;
         "locked" )
 		echo "$1 was locked"
