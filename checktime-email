@@ -1,0 +1,12 @@
+#!/bin/bash
+#
+#echo "Subject: $1 temps passer \r\n\r\n" > "/opt/checktime/tmp/$1.email"
+#echo $(< "/opt/checktime/log/$1.log") >> "/opt/checktime/tmp/$1.email"
+
+echo "Subject: $1 temps passer " > "/opt/checktime/tmp/$1.email"
+echo "Mime-Version: 1.0" >> "/opt/checktime/tmp/$1.email"
+echo "Content-Type: text/html" >> "/opt/checktime/tmp/$1.email"
+echo $(< "/opt/checktime/log/$1.log") >> "/opt/checktime/tmp/$1.email"
+
+ 
+msmtp  --host=smtp.free.fr  --from=arno.zz75@gmail.com arnaud_zotti@yahoo.fr < "/opt/checktime/tmp/$1.email"
